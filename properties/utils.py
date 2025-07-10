@@ -15,14 +15,30 @@ def get_all_properties():
         cache.set('all_properties', properties, timeout=3600)
     return properties
 
+
 def get_redis_cache_metrics():
     """
     Retrieves Redis cache hit/miss metrics and logs them.
     """
-    conn = get_redis_connection("default")
-    info = conn.info("stats")
-    hits = info.get("keyspace_hits", 0)
-    misses = info.get("keyspace_misses", 0)
-    ratio = hits / (hits + misses) if (hits + misses) > 0 else 0
-    logger.info(f"Redis Cache - Hits: {hits}, Misses: {misses}, Hit Ratio: {ratio}")
-    return {"hits": hits, "misses": misses, "hit_ratio": ratio}
+    try:
+        conn = get_redis_connection("default")
+        info = conn.info("stats")
+        hits = info.get("keyspace_hits", 0)
+        misses = info.get("keyspace_misses", 0)
+        total_requests = hits + misses
+        ratio = hits / total_requests if total_requests > 0 else 0
+
+        logger.info(f"Redis Cache - Hits: {hits}, Misses: {misses}, Hit Ratio: {ratio:.2f}")
+        return {
+            "hits": hits,
+            "misses": misses,
+            "hit_ratio": ratio
+        }
+
+    except Exception as e:
+        logger.error(f"Error retrieving Redis metrics: {str(e)}")
+        return {
+            "hits": 0,
+            "misses": 0,
+            "hit_ratio": 0
+        }
